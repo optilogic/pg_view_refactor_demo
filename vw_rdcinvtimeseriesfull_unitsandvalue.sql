@@ -1,28 +1,23 @@
-EXPLAIN WITH eodInventoryOnHand AS (
-    SELECT  DISTINCT ON (inv.facilityname, inv.productname, inv."time"::date) 
-        inv.facilityname,
-        inv.productname,
-        inv."time"::date AS simdate,
-        inv.inventoryonhandquantity
-    FROM simulationinventoryonhandreport inv
-    WHERE inv.scenarioname = 'RDC HW'
-    ORDER BY inv.facilityname, inv.productname, inv."time"::date, inv."time" DESC
-), eodInventoryValues AS (
-    SELECT eod.facilityname,
-        eod.productname,
-        ip.flowpath,
-        eod.simdate,
-        eod.inventoryonhandquantity AS eodinventory,
-        p.unitvalue::numeric * eod.inventoryonhandquantity AS valueonhand
-    FROM eodInventoryOnHand eod
-    LEFT JOIN inventorypolicies ip on eod.facilityname = replace(replace(lower(ip.facilityname), 'w12901x', 'w12901'), 'w12901', 'w12901x')
-        and eod.productname = lower(ip.productname)
-    LEFT JOIN products p ON eod.productname = lower(p.productname)
+EXPLAIN WITH daily_inventory AS (
+    SELECT DISTINCT ON (scenarioname, facilityname, productname, "time"::date)
+        scenarioname,
+        facilityname,
+        productname,
+        "time"::date AS simdate,
+        inventoryonhandquantity
+    FROM simulationinventoryonhandreport
+    WHERE scenarioname = 'RDC HW'
+    ORDER BY scenarioname, facilityname, productname, "time"::date, "time" DESC
 )
-SELECT 'RDC HW' AS scenarioname,
-    flowpath,
-    simdate,
-    sum(eodinventory) AS unitsonhand,
-    sum(valueonhand) AS valueonhand
-FROM eodInventoryValues
-GROUP BY flowpath, simdate
+SELECT di.scenarioname,
+    ip.flowpath,
+    SUM(di.inventoryonhandquantity) AS unitsonhand,
+    SUM(pr.unitvalue::numeric * di.inventoryonhandquantity) AS valueonhand,
+    di.simdate
+FROM daily_inventory di
+LEFT JOIN inventorypolicies ip
+    ON di.facilityname = replace(replace(lower(ip.facilityname), 'w12901x', 'w12901'), 'w12901', 'w12901x')
+    AND di.productname = lower(ip.productname)
+LEFT JOIN products pr
+    ON di.productname = lower(pr.productname)
+GROUP BY di.scenarioname, ip.flowpath, di.simdate;
