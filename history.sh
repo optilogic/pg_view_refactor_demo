@@ -24,7 +24,8 @@ main() {
 FILE=$1
 if [ -z "$FILE" ]; then
     echo "Usage: $0 <file>"
-    read -p "Press Enter to continue..."
+    echo -n "Press Enter to exit..."
+    read
 else
     main "$FILE"
 fi
