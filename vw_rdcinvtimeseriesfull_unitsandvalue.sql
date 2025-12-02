@@ -1,15 +1,14 @@
 EXPLAIN WITH daily_inventory AS (
-    SELECT DISTINCT ON (scenarioname, facilityname, productname, "time"::date)
-        scenarioname,
+    SELECT DISTINCT ON (facilityname, productname, "time"::date)
         facilityname,
         productname,
         "time"::date AS simdate,
         inventoryonhandquantity
     FROM simulationinventoryonhandreport
     WHERE scenarioname = 'RDC HW'
-    ORDER BY scenarioname, facilityname, productname, "time"::date, "time" DESC
+    ORDER BY facilityname, productname, "time"::date, "time" DESC
 )
-SELECT di.scenarioname,
+SELECT 'RDC HW' as scenarioname,
     ip.flowpath,
     SUM(di.inventoryonhandquantity) AS unitsonhand,
     SUM(pr.unitvalue::numeric * di.inventoryonhandquantity) AS valueonhand,
@@ -20,4 +19,4 @@ LEFT JOIN inventorypolicies ip
     AND di.productname = lower(ip.productname)
 LEFT JOIN products pr
     ON di.productname = lower(pr.productname)
-GROUP BY di.scenarioname, ip.flowpath, di.simdate;
+GROUP BY ip.flowpath, di.simdate;
